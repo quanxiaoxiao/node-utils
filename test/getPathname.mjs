@@ -3,6 +3,11 @@ import path from 'node:path';
 import test from 'ava'; // eslint-disable-line
 import { getPathname } from '../src/index.mjs';
 
+test('null', (t) => {
+  t.is(getPathname(12), null);
+  t.is(getPathname(), null);
+});
+
 test('~', (t) => {
   t.is(getPathname('~'), os.homedir());
   t.is(getPathname('~/'), os.homedir());

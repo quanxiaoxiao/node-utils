@@ -8,6 +8,9 @@ import { homedir } from 'node:os';
  * @returns {string}
  */
 export const getPathname = (url) => {
+  if (!url || typeof url !== 'string') {
+    return null;
+  }
   const str = url.trim();
   const trim = (/** @type {string} s */ s) => s.replace(/\/$/, '');
   if (str[0] === '~') {
