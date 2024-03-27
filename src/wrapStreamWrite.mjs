@@ -98,7 +98,7 @@ export default ({
     unbindEventAbort();
     if (state.isEventFinishBind) {
       state.isEventFinishBind = false;
-      stream.off('finish', handleFinish);
+      stream.off('end', handleFinish);
     }
     if (!stream.destroyed) {
       stream.destroy();
@@ -137,7 +137,7 @@ export default ({
     if (chunk == null) {
       clearEvents();
       state.isEventFinishBind = true;
-      stream.once('finish', handleFinish);
+      stream.once('end', handleFinish);
       stream.end();
       return null;
     }
