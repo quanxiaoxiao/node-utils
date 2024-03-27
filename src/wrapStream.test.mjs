@@ -173,10 +173,12 @@ test('wrapStream stream with end', async () => {
     assert.equal(chunk.toString(), 'ccc');
   });
   stream.on('data', handleData);
+  const controller = new AbortController();
   const write = wrapStream({
     stream,
     onError,
     onEnd,
+    signal: controller.signal,
   });
   write(Buffer.from('ccc'));
   write();
