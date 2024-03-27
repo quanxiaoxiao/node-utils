@@ -119,8 +119,8 @@ export default ({
   }
 
   return (chunk) => {
-    assert(state.isActive);
     assert(!state.isEventFinishBind);
+    assert(state.isActive);
     assert(stream.writable && !stream.writableEnded);
     if (chunk == null) {
       clearEvents();
