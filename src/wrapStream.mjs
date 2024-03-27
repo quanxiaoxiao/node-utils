@@ -18,7 +18,7 @@ export default ({
   const state = {
     isActive: true,
     isEventErrorBind: true,
-    isEventEndBind: false,
+    isEventFinishBind: false,
     isEventDrainBind: true,
     isEventCloseBind: true,
     isEventAbortBind: !!signal,
@@ -61,8 +61,8 @@ export default ({
     }
   }
 
-  function handleEnd() {
-    state.isEventEndBind = false;
+  function handleFinish() {
+    state.isEventFinishBind = false;
     state.isActive = false;
     unbindEventError();
     if (onEnd) {
@@ -84,9 +84,9 @@ export default ({
   function handleError(error) {
     state.isEventErrorBind = false;
     clearEvents();
-    if (state.isEventEndBind) {
-      state.isEventEndBind = false;
-      stream.off('end', handleEnd);
+    if (state.isEventFinishBind) {
+      state.isEventFinishBind = false;
+      stream.off('finish', handleFinish);
     }
     if (!stream.destroyed) {
       stream.destroy();
@@ -120,12 +120,12 @@ export default ({
 
   return (chunk) => {
     assert(state.isActive);
-    assert(!state.isEventEndBind);
+    assert(!state.isEventFinishBind);
     assert(stream.writable && !stream.writableEnded);
     if (chunk == null) {
       clearEvents();
-      state.isEventEndBind = true;
-      stream.once('end', handleEnd);
+      state.isEventFinishBind = true;
+      stream.once('finish', handleFinish);
       stream.end();
       return null;
     }
