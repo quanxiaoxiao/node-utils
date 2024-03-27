@@ -11,7 +11,9 @@ export default ({
 }) => {
   assert(stream.readable);
   assert(stream.writable);
-  assert(!signal.aborted);
+  if (signal) {
+    assert(!signal.aborted);
+  }
 
   const state = {
     isActive: true,
@@ -19,7 +21,7 @@ export default ({
     isEventEndBind: true,
     isEventDrainBind: true,
     isEventCloseBind: true,
-    isEventAbortBind: true,
+    isEventAbortBind: !!signal,
   };
 
   stream.once('error', handleError);
@@ -100,17 +102,20 @@ export default ({
     }
   }
 
-  signal.addEventListener('abort', handleAbortOnSignal, { once: true });
+  if (signal) {
+    signal.addEventListener('abort', handleAbortOnSignal, { once: true });
+  }
 
   return (chunk) => {
     assert(state.isActive && !stream.writableEnded);
     assert(stream.writable);
     if (chunk == null) {
       stream.end();
-    }
-    const ret = stream.write(chunk);
-    if (pause && ret === false) {
-      pause();
+    } else {
+      const ret = stream.write(chunk);
+      if (pause && ret === false) {
+        pause();
+      }
     }
   };
 };

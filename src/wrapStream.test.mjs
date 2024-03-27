@@ -89,3 +89,40 @@ test('wrapStream signal abort', async () => {
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
 });
+
+test('wrapStream stream destroy', async () => {
+  const stream = new PassThrough();
+  const onError = mock.fn((error) => {
+    assert.equal(error.message, 'close error');
+  });
+  const onEnd = mock.fn(() => {});
+  const handleData = mock.fn((chunk) => {
+    assert.equal(chunk.toString(), 'ccc');
+  });
+  stream.on('data', handleData);
+  const write = wrapStream({
+    stream,
+    onError,
+    onEnd,
+  });
+  write(Buffer.from('ccc'));
+  assert(!stream.destroyed);
+  stream.destroy();
+  assert(stream.destroyed);
+  await waitFor(100);
+  assert(!stream.eventNames().includes('error'));
+  assert(!stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('drain'));
+  assert(!stream.eventNames().includes('close'));
+  assert.equal(onError.mock.calls.length, 1);
+  assert.throws(
+    () => {
+      write(Buffer.from('bbb'));
+    },
+    (error) => error instanceof assert.AssertionError,
+  );
+  await waitFor(200);
+  assert.equal(onError.mock.calls.length, 1);
+  assert.equal(onEnd.mock.calls.length, 0);
+  assert.equal(handleData.mock.calls.length, 1);
+});
