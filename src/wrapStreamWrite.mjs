@@ -46,11 +46,14 @@ export default ({
     }
   }
 
-  function clearEvents() {
+  function unbindEventAbort() {
     if (state.isEventAbortBind) {
       state.isEventAbortBind = false;
       signal.removeEventListener('abort', handleAbortOnSignal);
     }
+  }
+
+  function clearEvents() {
     if (state.isEventDrainBind) {
       state.isEventDrainBind = false;
       stream.off('drain', handleDrain);
@@ -71,6 +74,7 @@ export default ({
     state.isEventFinishBind = false;
     state.isActive = false;
     unbindEventError();
+    unbindEventAbort();
     if (onEnd) {
       onEnd();
     }
@@ -81,6 +85,7 @@ export default ({
     state.isActive = false;
     state.isEventCloseBind = false;
     clearEvents();
+    unbindEventAbort();
     unbindEventError();
     if (onError) {
       onError(new Error('close error'));
@@ -90,6 +95,7 @@ export default ({
   function handleError(error) {
     state.isEventErrorBind = false;
     clearEvents();
+    unbindEventAbort();
     if (state.isEventFinishBind) {
       state.isEventFinishBind = false;
       stream.off('finish', handleFinish);
