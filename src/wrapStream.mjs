@@ -17,6 +17,11 @@ export default ({
 
   const state = {
     isActive: true,
+    isEventErrorBind: true,
+    isEventEndBind: true,
+    isEventDrainBind: true,
+    isEventCloseBind: true,
+    isEventAbortBind: true,
   };
 
   stream.once('error', handleError);
@@ -24,55 +29,75 @@ export default ({
   stream.on('drain', handleDrain);
   stream.once('close', handleClose);
 
+  function clearEvents() {
+    if (state.isEventAbortBind) {
+      state.isEventAbortBind = false;
+      signal.removeEventListener('abort', handleAbortOnSignal);
+    }
+    if (state.isEventDrainBind) {
+      state.isEventDrainBind = false;
+      stream.off('drain', handleDrain);
+    }
+    if (state.isEventEndBind) {
+      state.isEventEndBind = false;
+      stream.off('end', handleEnd);
+    }
+    if (state.isEventCloseBind) {
+      state.isEventCloseBind = false;
+      stream.off('close', handleClose);
+    }
+    if (state.isEventErrorBind) {
+      state.isEventErrorBind = false;
+      stream.off('error', handleError);
+    }
+  }
+
+  function setClose() {
+    assert(state.isActive);
+    state.isActive = false;
+  }
+
   function handleDrain() {
     assert(state.isActive);
     resume();
   }
 
   function handleEnd() {
-    state.isActive = false;
-    stream.off('error', handleError);
-    stream.off('close', handleClose);
-    stream.off('drain', handleDrain);
-    signal.removeEventListener('abort', handleAbortOnSignal);
+    setClose();
+    state.isEventEndBind = false;
+    clearEvents();
     if (onEnd) {
       onEnd();
     }
   }
 
   function handleClose() {
-    stream.off('drain', handleDrain);
-    stream.off('end', handleEnd);
-    stream.off('error', handleError);
-    signal.removeEventListener('abort', handleAbortOnSignal);
-    if (state.isActive) {
-      state.isActive = false;
+    setClose();
+    state.isEventCloseBind = false;
+    clearEvents();
+    if (onError) {
       onError(new Error('close error'));
     }
   }
 
   function handleError(error) {
-    stream.off('drain', handleDrain);
-    stream.off('end', handleEnd);
-    stream.off('close', handleClose);
-    signal.removeEventListener('abort', handleAbortOnSignal);
+    setClose();
+    state.isEventErrorBind = false;
+    clearEvents();
     if (!stream.destroyed) {
       stream.destroy();
     }
     if (onError) {
-      if (state.isActive) {
-        onError(error);
-      }
+      onError(error);
     } else {
       console.error(error);
-    }
-    if (state.isActive) {
-      state.isActive = false;
     }
   }
 
   function handleAbortOnSignal() {
-    state.isActive = false;
+    setClose();
+    state.isEventAbortBind = false;
+    clearEvents();
     if (!stream.destroyed) {
       stream.destroy();
     }
@@ -81,7 +106,8 @@ export default ({
   signal.addEventListener('abort', handleAbortOnSignal, { once: true });
 
   return (chunk) => {
-    assert(state.isActive && stream.writable && !stream.writableEnded);
+    assert(state.isActive && !stream.writableEnded);
+    assert(stream.writable);
     if (chunk == null) {
       stream.end();
     }
