@@ -4,7 +4,15 @@ import { test, mock } from 'node:test';
 import { PassThrough } from 'node:stream';
 import wrapStream from './wrapStream.mjs';
 
-test('wrapStream', () => {
+const waitFor = async (t = 100) => {
+  await new Promise((resolve) => {
+    setTimeout(() => {
+      resolve();
+    }, t);
+  });
+};
+
+test('wrapStream', async () => {
   const handleData = mock.fn(() => {});
   const onError = mock.fn(() => {});
   const onEnd = mock.fn(() => {});
@@ -23,6 +31,7 @@ test('wrapStream', () => {
   assert(!stream.destroyed);
   assert.equal(typeof write, 'function');
   assert(stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('close'));
   assert(stream.eventNames().includes('end'));
   assert(stream.eventNames().includes('drain'));
   write(Buffer.from('aaa'));
@@ -32,9 +41,11 @@ test('wrapStream', () => {
   assert.equal(handleData.mock.calls.length, 2);
   assert.equal(handleData.mock.calls[1].arguments.toString(), 'bbb');
   controller.abort();
+  await waitFor(100);
   assert(!stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
+  assert(!stream.eventNames().includes('close'));
   assert(stream.destroyed);
   assert.throws(
     () => {
@@ -44,4 +55,5 @@ test('wrapStream', () => {
   );
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(onError.mock.calls.length, 0);
+  assert.equal(handleData.mock.calls.length, 2);
 });
