@@ -62,6 +62,7 @@ export default ({
   }
 
   function handleFinish() {
+    assert(state.isActive);
     state.isEventFinishBind = false;
     state.isActive = false;
     unbindEventError();

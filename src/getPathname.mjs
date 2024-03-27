@@ -1,34 +1,38 @@
-import { join } from 'node:path';
+import path from 'node:path';
 import { homedir } from 'node:os';
+
+const trim = (s) => s.replace(/\/$/, '');
+
+const generateNameList = (str) => str.split('/').filter((s) => s !== '');
 
 export default (url) => {
   if (!url || typeof url !== 'string') {
     return null;
   }
   const str = url.trim();
-  const trim = (s) => s.replace(/\/$/, '');
   if (str[0] === '~') {
-    const nameList = trim(str.slice(1)).split('/');
+    const nameList = generateNameList(trim(str.slice(1)));
     if (nameList.length === 0) {
       return homedir();
     }
-    return join(homedir(), ...nameList);
+    return path.join(homedir(), ...nameList);
   }
   if (str[0] !== '/') {
     const nameList = [];
-    if (/^\/\./.test(str)) {
-      nameList.push(...trim(str.slice(2)).split('/'));
+    if (/^\.\//.test(str)) {
+      nameList.push(...generateNameList(trim(str.slice(2))));
     } else {
-      nameList.push(...trim(str).split('/'));
+      nameList.push(...generateNameList(trim(str)));
     }
     if (nameList.length === 0) {
       return process.cwd();
     }
-    return join(process.cwd(), ...nameList);
+    return path.join(process.cwd(), ...nameList);
   }
+  const { root } = path.parse(process.cwd());
   if (str === '/') {
-    return str;
+    return root;
   }
-  const nameList = trim(str.slice(1)).split('/');
-  return join('/', ...nameList);
+  const nameList = generateNameList(trim(str.slice(1)));
+  return path.join(root, ...nameList);
 };

@@ -2,7 +2,7 @@ import assert from 'node:assert';
 import { Buffer } from 'node:buffer';
 import { test, mock } from 'node:test';
 import { PassThrough } from 'node:stream';
-import wrapStream from './wrapStream.mjs';
+import wrapStreamWrite from './wrapStreamWrite.mjs';
 
 const waitFor = async (t = 100) => {
   await new Promise((resolve) => {
@@ -12,7 +12,7 @@ const waitFor = async (t = 100) => {
   });
 };
 
-test('wrapStream', async () => {
+test('wrapStreamWrite', async () => {
   const handleData = mock.fn(() => {});
   const onError = mock.fn(() => {});
   const onEnd = mock.fn(() => {});
@@ -20,7 +20,7 @@ test('wrapStream', async () => {
   const controller = new AbortController();
 
   stream.on('data', handleData);
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     signal: controller.signal,
     onError,
@@ -56,7 +56,7 @@ test('wrapStream', async () => {
   assert.equal(handleData.mock.calls.length, 2);
 });
 
-test('wrapStream signal abort', async () => {
+test('wrapStreamWrite signal abort', async () => {
   const controller = new AbortController();
   const stream = new PassThrough();
   const onError = mock.fn(() => {});
@@ -65,7 +65,7 @@ test('wrapStream signal abort', async () => {
     assert.equal(chunk.toString(), 'ccc');
   });
   stream.on('data', handleData);
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     signal: controller.signal,
     onError,
@@ -91,7 +91,7 @@ test('wrapStream signal abort', async () => {
   assert.equal(handleData.mock.calls.length, 1);
 });
 
-test('wrapStream stream destroy', async () => {
+test('wrapStreamWrite stream destroy', async () => {
   const stream = new PassThrough();
   const onError = mock.fn((error) => {
     assert.equal(error.message, 'close error');
@@ -101,7 +101,7 @@ test('wrapStream stream destroy', async () => {
     assert.equal(chunk.toString(), 'ccc');
   });
   stream.on('data', handleData);
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     onError,
     onEnd,
@@ -129,7 +129,7 @@ test('wrapStream stream destroy', async () => {
   assert.equal(handleData.mock.calls.length, 1);
 });
 
-test('wrapStream stream end', async () => {
+test('wrapStreamWrite stream end', async () => {
   const stream = new PassThrough();
   const onError = mock.fn((error) => {
     assert.equal(error.message, 'close error');
@@ -139,7 +139,7 @@ test('wrapStream stream end', async () => {
     assert.equal(chunk.toString(), 'ccc');
   });
   stream.on('data', handleData);
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     onError,
     onEnd,
@@ -164,7 +164,7 @@ test('wrapStream stream end', async () => {
   assert.equal(handleData.mock.calls.length, 1);
 });
 
-test('wrapStream stream with end', async () => {
+test('wrapStreamWrite stream with end', async () => {
   const stream = new PassThrough();
   const onError = mock.fn((error) => {
     assert.equal(error.message, 'close error');
@@ -175,7 +175,7 @@ test('wrapStream stream with end', async () => {
   });
   stream.on('data', handleData);
   const controller = new AbortController();
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     onError,
     onEnd,
@@ -202,7 +202,7 @@ test('wrapStream stream with end', async () => {
   assert.equal(handleData.mock.calls.length, 1);
 });
 
-test('wrapStream stream trigger error', async () => {
+test('wrapStreamWrite stream trigger error', async () => {
   const stream = new PassThrough();
   const onError = mock.fn((error) => {
     assert.equal(error.message, 'aaa');
@@ -213,7 +213,7 @@ test('wrapStream stream trigger error', async () => {
   });
   stream.on('data', handleData);
   const controller = new AbortController();
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     onError,
     onEnd,
@@ -240,7 +240,7 @@ test('wrapStream stream trigger error', async () => {
   assert.equal(handleData.mock.calls.length, 1);
 });
 
-test('wrapStream stream trigger error 2', async () => {
+test('wrapStreamWrite stream trigger error 2', async () => {
   const stream = new PassThrough();
   const onEnd = mock.fn(() => {});
   const handleData = mock.fn((chunk) => {
@@ -248,7 +248,7 @@ test('wrapStream stream trigger error 2', async () => {
   });
   stream.on('data', handleData);
   const controller = new AbortController();
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     onEnd,
     signal: controller.signal,
@@ -272,14 +272,14 @@ test('wrapStream stream trigger error 2', async () => {
   assert.equal(handleData.mock.calls.length, 1);
 });
 
-test('wrapStream stream pause', { only: true }, async () => {
+test('wrapStreamWrite stream pause', { only: true }, async () => {
   const stream = new PassThrough({
     highWaterMark: 5,
   });
   const onEnd = mock.fn(() => {});
   const onPause = mock.fn(() => {});
   const onResume = mock.fn(() => {});
-  const write = wrapStream({
+  const write = wrapStreamWrite({
     stream,
     onEnd,
     onResume,
