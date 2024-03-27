@@ -12,8 +12,6 @@ export default ({
   assert(stream.readable);
   assert(stream.writable);
   assert(!signal.aborted);
-  assert(typeof pause === 'function');
-  assert(typeof resume === 'function');
 
   const state = {
     isActive: true,
@@ -60,7 +58,9 @@ export default ({
 
   function handleDrain() {
     assert(state.isActive);
-    resume();
+    if (resume) {
+      resume();
+    }
   }
 
   function handleEnd() {
@@ -109,7 +109,7 @@ export default ({
       stream.end();
     }
     const ret = stream.write(chunk);
-    if (ret === false) {
+    if (pause && ret === false) {
       pause();
     }
   };
