@@ -126,3 +126,75 @@ test('wrapStream stream destroy', async () => {
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
 });
+
+test('wrapStream stream end', async () => {
+  const stream = new PassThrough();
+  const onError = mock.fn((error) => {
+    assert.equal(error.message, 'close error');
+  });
+  const onEnd = mock.fn(() => {});
+  const handleData = mock.fn((chunk) => {
+    assert.equal(chunk.toString(), 'ccc');
+  });
+  stream.on('data', handleData);
+  const write = wrapStream({
+    stream,
+    onError,
+    onEnd,
+  });
+  write(Buffer.from('ccc'));
+  stream.end();
+  await waitFor(100);
+  assert(stream.destroyed);
+  assert(!stream.eventNames().includes('error'));
+  assert(!stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('drain'));
+  assert(!stream.eventNames().includes('close'));
+  assert.equal(onError.mock.calls.length, 0);
+  assert.throws(
+    () => {
+      write(Buffer.from('bbb'));
+    },
+    (error) => error instanceof assert.AssertionError,
+  );
+  await waitFor(200);
+  assert.equal(onError.mock.calls.length, 0);
+  assert.equal(onEnd.mock.calls.length, 1);
+  assert.equal(handleData.mock.calls.length, 1);
+});
+
+test('wrapStream stream with end', async () => {
+  const stream = new PassThrough();
+  const onError = mock.fn((error) => {
+    assert.equal(error.message, 'close error');
+  });
+  const onEnd = mock.fn(() => {});
+  const handleData = mock.fn((chunk) => {
+    assert.equal(chunk.toString(), 'ccc');
+  });
+  stream.on('data', handleData);
+  const write = wrapStream({
+    stream,
+    onError,
+    onEnd,
+  });
+  write(Buffer.from('ccc'));
+  write();
+  await waitFor(100);
+  assert(stream.destroyed);
+  assert(!stream.eventNames().includes('error'));
+  assert(!stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('drain'));
+  assert(!stream.eventNames().includes('close'));
+  assert.equal(onError.mock.calls.length, 0);
+  assert.throws(
+    () => {
+      write(Buffer.from('bbb'));
+    },
+    (error) => error instanceof assert.AssertionError,
+  );
+  await waitFor(200);
+  assert.equal(onError.mock.calls.length, 0);
+  assert.equal(onEnd.mock.calls.length, 1);
+  assert.equal(handleData.mock.calls.length, 1);
+});
