@@ -55,6 +55,7 @@ export default ({
   function setClose() {
     assert(state.isActive);
     state.isActive = false;
+    clearEvents();
   }
 
   function handleDrain() {
@@ -63,27 +64,24 @@ export default ({
   }
 
   function handleEnd() {
-    setClose();
     state.isEventEndBind = false;
-    clearEvents();
+    setClose();
     if (onEnd) {
       onEnd();
     }
   }
 
   function handleClose() {
-    setClose();
     state.isEventCloseBind = false;
-    clearEvents();
+    setClose();
     if (onError) {
       onError(new Error('close error'));
     }
   }
 
   function handleError(error) {
-    setClose();
     state.isEventErrorBind = false;
-    clearEvents();
+    setClose();
     if (!stream.destroyed) {
       stream.destroy();
     }
@@ -95,9 +93,8 @@ export default ({
   }
 
   function handleAbortOnSignal() {
-    setClose();
     state.isEventAbortBind = false;
-    clearEvents();
+    setClose();
     if (!stream.destroyed) {
       stream.destroy();
     }
