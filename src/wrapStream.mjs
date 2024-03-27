@@ -3,9 +3,9 @@ import assert from 'node:assert';
 
 export default ({
   stream,
-  pause,
-  resume,
   signal,
+  onPause,
+  onResume,
   onError,
   onEnd,
 }) => {
@@ -18,16 +18,26 @@ export default ({
   const state = {
     isActive: true,
     isEventErrorBind: true,
-    isEventEndBind: true,
+    isEventEndBind: false,
     isEventDrainBind: true,
     isEventCloseBind: true,
     isEventAbortBind: !!signal,
   };
 
   stream.once('error', handleError);
-  stream.once('end', handleEnd);
   stream.on('drain', handleDrain);
   stream.once('close', handleClose);
+
+  function unbindEventError() {
+    if (state.isEventErrorBind) {
+      setTimeout(() => {
+        if (state.isEventErrorBind) {
+          state.isEventErrorBind = false;
+          stream.off('error', handleError);
+        }
+      }, 100);
+    }
+  }
 
   function clearEvents() {
     if (state.isEventAbortBind) {
@@ -38,44 +48,34 @@ export default ({
       state.isEventDrainBind = false;
       stream.off('drain', handleDrain);
     }
-    if (state.isEventEndBind) {
-      state.isEventEndBind = false;
-      stream.off('end', handleEnd);
-    }
     if (state.isEventCloseBind) {
       state.isEventCloseBind = false;
       stream.off('close', handleClose);
     }
-    if (state.isEventErrorBind) {
-      state.isEventErrorBind = false;
-      stream.off('error', handleError);
-    }
-  }
-
-  function setClose() {
-    assert(state.isActive);
-    state.isActive = false;
-    clearEvents();
   }
 
   function handleDrain() {
     assert(state.isActive);
-    if (resume) {
-      resume();
+    if (onResume) {
+      onResume();
     }
   }
 
   function handleEnd() {
     state.isEventEndBind = false;
-    setClose();
+    state.isActive = false;
+    unbindEventError();
     if (onEnd) {
       onEnd();
     }
   }
 
   function handleClose() {
+    assert(state.isActive);
+    state.isActive = false;
     state.isEventCloseBind = false;
-    setClose();
+    clearEvents();
+    unbindEventError();
     if (onError) {
       onError(new Error('close error'));
     }
@@ -83,20 +83,32 @@ export default ({
 
   function handleError(error) {
     state.isEventErrorBind = false;
-    setClose();
+    clearEvents();
+    if (state.isEventEndBind) {
+      state.isEventEndBind = false;
+      stream.off('end', handleEnd);
+    }
     if (!stream.destroyed) {
       stream.destroy();
     }
     if (onError) {
-      onError(error);
+      if (state.isActive) {
+        onError(error);
+      }
     } else {
       console.error(error);
+    }
+    if (state.isActive) {
+      state.isActive = false;
     }
   }
 
   function handleAbortOnSignal() {
+    assert(state.isActive);
+    state.isActive = false;
     state.isEventAbortBind = false;
-    setClose();
+    clearEvents();
+    unbindEventError();
     if (!stream.destroyed) {
       stream.destroy();
     }
@@ -107,15 +119,20 @@ export default ({
   }
 
   return (chunk) => {
-    assert(state.isActive && !stream.writableEnded);
-    assert(stream.writable);
+    assert(state.isActive);
+    assert(!state.isEventEndBind);
+    assert(stream.writable && !stream.writableEnded);
     if (chunk == null) {
+      clearEvents();
+      state.isEventEndBind = true;
+      stream.once('end', handleEnd);
       stream.end();
-    } else {
-      const ret = stream.write(chunk);
-      if (pause && ret === false) {
-        pause();
-      }
+      return null;
     }
+    const ret = stream.write(chunk);
+    if (onPause && ret === false) {
+      onPause();
+    }
+    return ret;
   };
 };

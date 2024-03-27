@@ -30,7 +30,7 @@ test('wrapStream', async () => {
   assert.equal(typeof write, 'function');
   assert(stream.eventNames().includes('error'));
   assert(stream.eventNames().includes('close'));
-  assert(stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('end'));
   assert(stream.eventNames().includes('drain'));
   write(Buffer.from('aaa'));
   assert.equal(handleData.mock.calls.length, 1);
@@ -73,7 +73,7 @@ test('wrapStream signal abort', async () => {
   });
   write(Buffer.from('ccc'));
   controller.abort();
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));
@@ -85,6 +85,7 @@ test('wrapStream signal abort', async () => {
     (error) => error instanceof assert.AssertionError,
   );
   await waitFor(200);
+  assert(!stream.eventNames().includes('error'));
   assert.equal(onError.mock.calls.length, 0);
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
@@ -109,8 +110,8 @@ test('wrapStream stream destroy', async () => {
   assert(!stream.destroyed);
   stream.destroy();
   assert(stream.destroyed);
+  assert(stream.eventNames().includes('error'));
   await waitFor(100);
-  assert(!stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));
@@ -122,6 +123,7 @@ test('wrapStream stream destroy', async () => {
     (error) => error instanceof assert.AssertionError,
   );
   await waitFor(200);
+  assert(!stream.eventNames().includes('error'));
   assert.equal(onError.mock.calls.length, 1);
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
@@ -144,13 +146,13 @@ test('wrapStream stream end', async () => {
   });
   write(Buffer.from('ccc'));
   stream.end();
-  await waitFor(100);
+  await waitFor(50);
   assert(stream.destroyed);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));
-  assert.equal(onError.mock.calls.length, 0);
+  assert.equal(onError.mock.calls.length, 1);
   assert.throws(
     () => {
       write(Buffer.from('bbb'));
@@ -158,8 +160,7 @@ test('wrapStream stream end', async () => {
     (error) => error instanceof assert.AssertionError,
   );
   await waitFor(200);
-  assert.equal(onError.mock.calls.length, 0);
-  assert.equal(onEnd.mock.calls.length, 1);
+  assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
 });
 
@@ -182,9 +183,9 @@ test('wrapStream stream with end', async () => {
   });
   write(Buffer.from('ccc'));
   write();
-  await waitFor(100);
+  await waitFor(50);
   assert(stream.destroyed);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));
@@ -199,4 +200,99 @@ test('wrapStream stream with end', async () => {
   assert.equal(onError.mock.calls.length, 0);
   assert.equal(onEnd.mock.calls.length, 1);
   assert.equal(handleData.mock.calls.length, 1);
+});
+
+test('wrapStream stream trigger error', async () => {
+  const stream = new PassThrough();
+  const onError = mock.fn((error) => {
+    assert.equal(error.message, 'aaa');
+  });
+  const onEnd = mock.fn(() => {});
+  const handleData = mock.fn((chunk) => {
+    assert.equal(chunk.toString(), 'ccc');
+  });
+  stream.on('data', handleData);
+  const controller = new AbortController();
+  const write = wrapStream({
+    stream,
+    onError,
+    onEnd,
+    signal: controller.signal,
+  });
+  write(Buffer.from('ccc'));
+  stream.emit('error', new Error('aaa'));
+  await waitFor(100);
+  assert(stream.destroyed);
+  assert(!stream.eventNames().includes('error'));
+  assert(!stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('drain'));
+  assert(!stream.eventNames().includes('close'));
+  assert.equal(onError.mock.calls.length, 1);
+  assert.throws(
+    () => {
+      write(Buffer.from('bbb'));
+    },
+    (error) => error instanceof assert.AssertionError,
+  );
+  await waitFor(200);
+  assert.equal(onError.mock.calls.length, 1);
+  assert.equal(onEnd.mock.calls.length, 0);
+  assert.equal(handleData.mock.calls.length, 1);
+});
+
+test('wrapStream stream trigger error 2', async () => {
+  const stream = new PassThrough();
+  const onEnd = mock.fn(() => {});
+  const handleData = mock.fn((chunk) => {
+    assert.equal(chunk.toString(), 'ccc');
+  });
+  stream.on('data', handleData);
+  const controller = new AbortController();
+  const write = wrapStream({
+    stream,
+    onEnd,
+    signal: controller.signal,
+  });
+  write(Buffer.from('ccc'));
+  stream.emit('error', new Error('aaa'));
+  await waitFor(100);
+  assert(stream.destroyed);
+  assert(!stream.eventNames().includes('error'));
+  assert(!stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('drain'));
+  assert(!stream.eventNames().includes('close'));
+  assert.throws(
+    () => {
+      write(Buffer.from('bbb'));
+    },
+    (error) => error instanceof assert.AssertionError,
+  );
+  await waitFor(200);
+  assert.equal(onEnd.mock.calls.length, 0);
+  assert.equal(handleData.mock.calls.length, 1);
+});
+
+test('wrapStream stream pause', { only: true }, async () => {
+  const stream = new PassThrough({
+    highWaterMark: 5,
+  });
+  const onEnd = mock.fn(() => {});
+  const onPause = mock.fn(() => {});
+  const onResume = mock.fn(() => {});
+  const write = wrapStream({
+    stream,
+    onEnd,
+    onResume,
+    onPause,
+  });
+  const ret = write(Buffer.from('aaaasdfasd fasdfw'));
+  assert(!ret);
+  assert.equal(onPause.mock.calls.length, 1);
+  assert.equal(onResume.mock.calls.length, 0);
+  assert(!stream.eventNames().includes('end'));
+  assert(stream.eventNames().includes('drain'));
+  write();
+  assert(stream.eventNames().includes('end'));
+  assert(!stream.eventNames().includes('drain'));
+  await waitFor(100);
 });
