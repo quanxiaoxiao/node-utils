@@ -311,7 +311,7 @@ test('wrapStreamWrite stream onResume but not set onPause', async () => {
   );
 });
 
-test('wrapStreamWrite stream abort before end', async () => {
+test('wrapStreamWrite stream abort before end', () => {
   const stream = new PassThrough();
   const controller = new AbortController();
   const onEnd = mock.fn(() => {});
