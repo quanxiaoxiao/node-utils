@@ -5,7 +5,7 @@ export default ({
   stream,
   signal,
   onPause,
-  onResume,
+  onDrain,
   onError,
   onEnd,
 }) => {
@@ -15,7 +15,7 @@ export default ({
     assert(!signal.aborted);
   }
 
-  if (onResume) {
+  if (onDrain) {
     assert(typeof onPause === 'function');
   }
 
@@ -23,7 +23,7 @@ export default ({
     isActive: true,
     isEventErrorBind: true,
     isEventEndBind: false,
-    isEventDrainBind: !!onResume,
+    isEventDrainBind: !!onDrain,
     isEventCloseBind: true,
     isEventAbortBind: !!signal,
   };
@@ -31,7 +31,7 @@ export default ({
   stream.once('error', handleError);
   stream.once('close', handleClose);
 
-  if (onResume) {
+  if (onDrain) {
     stream.on('drain', handleDrain);
   }
 
@@ -66,7 +66,7 @@ export default ({
 
   function handleDrain() {
     assert(state.isActive);
-    onResume();
+    onDrain();
   }
 
   function handleEnd() {

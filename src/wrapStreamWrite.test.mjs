@@ -278,17 +278,17 @@ test('wrapStreamWrite stream pause', async () => {
   });
   const onEnd = mock.fn(() => {});
   const onPause = mock.fn(() => {});
-  const onResume = mock.fn(() => {});
+  const onDrain = mock.fn(() => {});
   const write = wrapStreamWrite({
     stream,
     onEnd,
-    onResume,
+    onDrain,
     onPause,
   });
   const ret = write(Buffer.from('aaaasdfasd fasdfw'));
   assert(!ret);
   assert.equal(onPause.mock.calls.length, 1);
-  assert.equal(onResume.mock.calls.length, 0);
+  assert.equal(onDrain.mock.calls.length, 0);
   assert(!stream.eventNames().includes('end'));
   assert(stream.eventNames().includes('drain'));
   write();
@@ -297,14 +297,14 @@ test('wrapStreamWrite stream pause', async () => {
   await waitFor(100);
 });
 
-test('wrapStreamWrite stream onResume but not set onPause', async () => {
+test('wrapStreamWrite stream onDrain but not set onPause', async () => {
   const stream = new PassThrough();
-  const onResume = mock.fn(() => {});
+  const onDrain = mock.fn(() => {});
   assert.throws(
     () => {
       wrapStreamWrite({
         stream,
-        onResume,
+        onDrain,
       });
     },
     (error) => error instanceof assert.AssertionError,
