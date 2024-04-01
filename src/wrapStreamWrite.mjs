@@ -15,15 +15,11 @@ export default ({
     assert(!signal.aborted);
   }
 
-  if (onDrain) {
-    assert(typeof onPause === 'function');
-  }
-
   const state = {
     isActive: true,
     isEventErrorBind: true,
     isEventEndBind: false,
-    isEventDrainBind: !!onDrain,
+    isEventDrainBind: true,
     isEventCloseBind: true,
     isEventAbortBind: !!signal,
   };
@@ -31,9 +27,7 @@ export default ({
   stream.once('error', handleError);
   stream.once('close', handleClose);
 
-  if (onDrain) {
-    stream.on('drain', handleDrain);
-  }
+  stream.on('drain', handleDrain);
 
   function unbindEventError() {
     if (state.isEventErrorBind) {
@@ -66,7 +60,9 @@ export default ({
 
   function handleDrain() {
     assert(state.isActive);
-    onDrain();
+    if (onDrain) {
+      onDrain();
+    }
   }
 
   function handleEnd() {

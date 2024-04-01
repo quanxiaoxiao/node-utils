@@ -31,7 +31,7 @@ test('wrapStreamWrite', async () => {
   assert(stream.eventNames().includes('error'));
   assert(stream.eventNames().includes('close'));
   assert(!stream.eventNames().includes('end'));
-  assert(!stream.eventNames().includes('drain'));
+  assert(stream.eventNames().includes('drain'));
   write(Buffer.from('aaa'));
   assert.equal(handleData.mock.calls.length, 1);
   assert.equal(handleData.mock.calls[0].arguments.toString(), 'aaa');
@@ -295,20 +295,6 @@ test('wrapStreamWrite stream pause', async () => {
   assert(stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   await waitFor(100);
-});
-
-test('wrapStreamWrite stream onDrain but not set onPause', async () => {
-  const stream = new PassThrough();
-  const onDrain = mock.fn(() => {});
-  assert.throws(
-    () => {
-      wrapStreamWrite({
-        stream,
-        onDrain,
-      });
-    },
-    (error) => error instanceof assert.AssertionError,
-  );
 });
 
 test('wrapStreamWrite stream abort before end', () => {
