@@ -285,7 +285,7 @@ test('wrapStreamWrite stream pause', async () => {
     onDrain,
     onPause,
   });
-  const ret = write(Buffer.from('aaaasdfasd fasdfw'));
+  const ret = write(Buffer.from('aaaasdfasd 11asdf'));
   assert(!ret);
   assert.equal(onPause.mock.calls.length, 1);
   assert.equal(onDrain.mock.calls.length, 0);
@@ -326,4 +326,61 @@ test('wrapStreamWrite stream abort before end', () => {
   setTimeout(() => {
     assert.equal(onEnd.mock.calls.length, 0);
   }, 150);
+});
+
+test('wrapStreamWrite stream destroy', () => {
+  const stream = new PassThrough();
+  const onEnd = mock.fn(() => {});
+
+  const onError = mock.fn(() => {});
+
+  const write = wrapStreamWrite({
+    stream,
+    onEnd,
+    onError,
+  });
+  write(Buffer.from('aaa'));
+  setTimeout(() => {
+    stream.destroy();
+  }, 10);
+  setTimeout(() => {
+    try {
+      write(Buffer.from('ccc'));
+      throw new Error('xxx');
+    } catch (error) {
+      assert(error instanceof assert.AssertionError);
+      assert(!stream.eventNames().includes('drain'));
+      assert(!stream.eventNames().includes('close'));
+    }
+  }, 30);
+});
+
+test('wrapStreamWrite stream no resume', () => {
+  const stream = new PassThrough();
+  const onEnd = mock.fn(() => {});
+
+  const onError = mock.fn(() => {});
+
+  const write = wrapStreamWrite({
+    stream,
+    onEnd,
+    onError,
+  });
+  write(Buffer.from('aaa'));
+  setTimeout(() => {
+    write();
+  }, 10);
+  setTimeout(() => {
+    assert(stream.writableEnded);
+    assert(!stream.destroyed);
+    assert(stream.eventNames().includes('close'));
+    assert(stream.eventNames().includes('end'));
+    stream.destroy();
+  }, 30);
+  setTimeout(() => {
+    assert.equal(onEnd.mock.calls.length, 0);
+    assert.equal(onError.mock.calls.length, 1);
+    assert(!stream.eventNames().includes('close'));
+    assert(!stream.eventNames().includes('end'));
+  }, 50);
 });

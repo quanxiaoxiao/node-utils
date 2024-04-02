@@ -26,7 +26,6 @@ export default ({
 
   stream.once('error', handleError);
   stream.once('close', handleClose);
-
   stream.on('drain', handleDrain);
 
   function unbindEventError() {
@@ -37,6 +36,13 @@ export default ({
           stream.off('error', handleError);
         }
       }, 100);
+    }
+  }
+
+  function unbindEventClose() {
+    if (state.isEventCloseBind) {
+      state.isEventCloseBind = false;
+      stream.off('close', handleClose);
     }
   }
 
@@ -52,9 +58,9 @@ export default ({
       state.isEventDrainBind = false;
       stream.off('drain', handleDrain);
     }
-    if (state.isEventCloseBind) {
-      state.isEventCloseBind = false;
-      stream.off('close', handleClose);
+    if (state.isEventEndBind) {
+      state.isEventEndBind = false;
+      stream.off('end', handleEnd);
     }
   }
 
@@ -69,6 +75,7 @@ export default ({
     assert(state.isActive);
     state.isEventEndBind = false;
     state.isActive = false;
+    unbindEventClose();
     unbindEventError();
     unbindEventAbort();
     if (onEnd) {
@@ -90,12 +97,9 @@ export default ({
 
   function handleError(error) {
     state.isEventErrorBind = false;
+    unbindEventClose();
     clearEvents();
     unbindEventAbort();
-    if (state.isEventEndBind) {
-      state.isEventEndBind = false;
-      stream.off('end', handleEnd);
-    }
     if (!stream.destroyed) {
       stream.destroy();
     }
@@ -115,6 +119,7 @@ export default ({
     assert(state.isActive);
     state.isActive = false;
     state.isEventAbortBind = false;
+    unbindEventClose();
     clearEvents();
     unbindEventError();
     if (!stream.destroyed) {
