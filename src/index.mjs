@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import { createHash } from 'node:crypto';
 import getPathname from './getPathname.mjs';
 import wrapStreamWrite from './wrapStreamWrite.mjs';
+import wrapperStreamRead from './wrapperStreamRead.mjs';
 
 export const sha256 = (str) => createHash('sha256')
   .update(str)
@@ -33,4 +34,5 @@ export const getFileList = (pathname, maxDepth) => {
 export {
   getPathname,
   wrapStreamWrite,
+  wrapperStreamRead,
 };
