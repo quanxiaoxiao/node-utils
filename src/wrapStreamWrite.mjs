@@ -26,6 +26,7 @@ export default ({
     isEventCloseBind: true,
     isEventFinishBind: false,
     isEventAbortBind: !!signal,
+    bytes: 0,
   };
 
   stream.once('error', handleError);
@@ -84,7 +85,7 @@ export default ({
     unbindEventError();
     unbindEventAbort();
     if (state.isActive && onEnd) {
-      onEnd();
+      onEnd(state.bytes);
     }
     state.isActive = false;
   }
@@ -124,7 +125,7 @@ export default ({
     unbindEventError();
     unbindEventAbort();
     if (state.isActive && onEnd) {
-      onEnd();
+      onEnd(state.bytes);
     }
     state.isActive = false;
   }
@@ -147,9 +148,20 @@ export default ({
   return (chunk) => {
     assert(!state.isEventEndBind);
     assert(state.isActive);
+    assert(!stream.destroyed);
     assert(stream.writable && !stream.writableEnded);
     if (chunk == null) {
       clearEvents();
+      if (state.bytes === 0) {
+        unbindEventClose();
+        unbindEventError();
+        state.isActive = false;
+        if (onEnd) {
+          onEnd(0);
+        }
+        stream.destroy();
+        return null;
+      }
       if (stream instanceof Readable) {
         state.isEventEndBind = true;
         stream.once('end', handleEnd);
@@ -160,6 +172,7 @@ export default ({
       stream.end();
       return null;
     }
+    state.bytes += Buffer.byteLength(chunk);
     const ret = stream.write(chunk);
     if (onPause && ret === false) {
       onPause();

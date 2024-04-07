@@ -173,7 +173,9 @@ test('wrapStreamWrite stream with end', async () => {
   const onError = mock.fn((error) => {
     assert.equal(error.message, 'close error');
   });
-  const onEnd = mock.fn(() => {});
+  const onEnd = mock.fn((size) => {
+    assert(size > 0);
+  });
   const handleData = mock.fn((chunk) => {
     assert.equal(chunk.toString(), 'ccc');
   });
@@ -520,5 +522,25 @@ test('wrapStreamWrite stream writable, abort', async () => {
   }
   setTimeout(() => {
     walk();
+  }, 100);
+});
+
+test('wrapStreamWrite with empty', () => {
+  const stream = new PassThrough();
+  const onEnd = mock.fn((size) => {
+    assert.equal(size, 0);
+  });
+  const onError = mock.fn(() => {});
+  const write = wrapStreamWrite({
+    stream,
+    onEnd,
+    onError,
+  });
+  setTimeout(() => {
+    write();
+  }, 10);
+  setTimeout(() => {
+    assert.equal(onError.mock.calls.length, 0);
+    assert.equal(onEnd.mock.calls.length, 1);
   }, 100);
 });
