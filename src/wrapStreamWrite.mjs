@@ -1,5 +1,6 @@
 /* eslint no-use-before-define: 0 */
 import assert from 'node:assert';
+import { Readable } from 'node:stream';
 
 export default ({
   stream,
@@ -9,8 +10,10 @@ export default ({
   onError,
   onEnd,
 }) => {
-  assert(stream.readable);
   assert(stream.writable);
+  if (stream instanceof Readable) {
+    assert(stream.readable);
+  }
   if (signal) {
     assert(!signal.aborted);
   }
@@ -21,6 +24,7 @@ export default ({
     isEventEndBind: false,
     isEventDrainBind: true,
     isEventCloseBind: true,
+    isEventFinishBind: false,
     isEventAbortBind: !!signal,
   };
 
@@ -61,6 +65,10 @@ export default ({
     if (state.isEventEndBind) {
       state.isEventEndBind = false;
       stream.off('end', handleEnd);
+    }
+    if (state.isEventFinishBind) {
+      state.isEventFinishBind = false;
+      stream.off('finish', handleFinish);
     }
   }
 
@@ -115,6 +123,18 @@ export default ({
     }
   }
 
+  function handleFinish() {
+    assert(state.isActive);
+    state.isEventFinishBind = false;
+    state.isActive = false;
+    unbindEventClose();
+    unbindEventError();
+    unbindEventAbort();
+    if (onEnd) {
+      onEnd();
+    }
+  }
+
   function handleAbortOnSignal() {
     assert(state.isActive);
     state.isActive = false;
@@ -137,8 +157,13 @@ export default ({
     assert(stream.writable && !stream.writableEnded);
     if (chunk == null) {
       clearEvents();
-      state.isEventEndBind = true;
-      stream.once('end', handleEnd);
+      if (stream instanceof Readable) {
+        state.isEventEndBind = true;
+        stream.once('end', handleEnd);
+      } else {
+        state.isEventFinishBind = true;
+        stream.once('finish', handleFinish);
+      }
       stream.end();
       return null;
     }

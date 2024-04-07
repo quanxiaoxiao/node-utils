@@ -1,4 +1,8 @@
+/* eslint no-use-before-define: 0 */
 import assert from 'node:assert';
+import process from 'node:process';
+import fs from 'node:fs';
+import path from 'node:path';
 import { Buffer } from 'node:buffer';
 import { test, mock } from 'node:test';
 import { PassThrough } from 'node:stream';
@@ -383,4 +387,95 @@ test('wrapStreamWrite stream no resume', () => {
     assert(!stream.eventNames().includes('close'));
     assert(!stream.eventNames().includes('end'));
   }, 50);
+});
+
+test('wrapStreamWrite stream writable', async () => {
+  const pathname = path.resolve(process.cwd(), `test_${Date.now()}_111`);
+  const ws = fs.createWriteStream(pathname);
+  const onEnd = mock.fn(() => {});
+  const onError = mock.fn(() => {});
+  const write = wrapStreamWrite({
+    stream: ws,
+    onEnd,
+    onError,
+  });
+  write('111');
+  write(Buffer.from('222'));
+  write();
+  await waitFor(200);
+  assert.equal(onEnd.mock.calls.length, 1);
+  assert.equal(onError.mock.calls.length, 0);
+  const buf = fs.readFileSync(pathname);
+  assert.equal(buf.toString(), '111222');
+  fs.unlinkSync(pathname);
+});
+
+test('wrapStreamWrite stream writable, stream close error', async () => {
+  const pathname = path.resolve(process.cwd(), `test_${Date.now()}_222`);
+  const ws = fs.createWriteStream(pathname);
+  const onEnd = mock.fn(() => {});
+  const onError = mock.fn(() => {});
+  const write = wrapStreamWrite({
+    stream: ws,
+    onEnd,
+    onError,
+  });
+  write('111');
+  write(Buffer.from('222'));
+  await waitFor(100);
+  ws.destroy();
+  await waitFor(200);
+  assert.equal(onEnd.mock.calls.length, 0);
+  assert.equal(onError.mock.calls.length, 1);
+  const buf = fs.readFileSync(pathname);
+  assert.equal(buf.toString(), '111222');
+  fs.unlinkSync(pathname);
+});
+
+test('wrapStreamWrite stream writable, onPause', { only: true }, async () => {
+  let isPaused = false;
+  let isClose = false;
+  let i = 0;
+  const count = 8000;
+  const content = 'adsfasdfw';
+  const pathname = path.resolve(process.cwd(), `test_${Date.now()}_333`);
+  const ws = fs.createWriteStream(pathname);
+  const onEnd = mock.fn(() => {});
+  const onError = mock.fn(() => {});
+  const onPause = mock.fn(() => {
+    isPaused = true;
+  });
+  const onDrain = mock.fn(() => {
+    isPaused = false;
+    walk();
+  });
+  const write = wrapStreamWrite({
+    stream: ws,
+    onEnd,
+    onError,
+    onPause,
+    onDrain,
+  });
+  function walk() {
+    while (!isPaused && i < count) {
+      const s = `${new Array(800).fill(content).join('')}:${i}`;
+      write(s);
+      i++;
+    }
+    if (i >= count && !isClose) {
+      isClose = true;
+      write();
+    }
+  }
+  setTimeout(() => {
+    walk();
+  }, 10);
+  await waitFor(3000);
+  assert.equal(onError.mock.calls.length, 0);
+  assert(onPause.mock.calls.length > 0);
+  assert(onDrain.mock.calls.length > 0);
+  assert.equal(onError.mock.calls.length, 0);
+  const buf = fs.readFileSync(pathname);
+  assert(new RegExp(`:${count - 1}$`).test(buf.toString()));
+  fs.unlinkSync(pathname);
 });
