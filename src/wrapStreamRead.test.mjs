@@ -43,6 +43,80 @@ test('wrapStreamRead', () => {
   }, 1000);
 });
 
+test('wrapStreamRead 2', () => {
+  const stream = new PassThrough();
+  for (let i = 0; i < 300; i++) {
+    stream.write(Buffer.from(`aaaa:${i}`));
+  }
+  stream.end();
+  const onData = mock.fn(() => {
+  });
+  const onError = mock.fn(() => {});
+  const onEnd = mock.fn(() => {});
+  wrapStreamRead({
+    stream,
+    onData,
+    onError,
+    onEnd,
+  });
+  assert(stream.eventNames().includes('data'));
+  assert(stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('end'));
+  assert(stream.eventNames().includes('close'));
+
+  setTimeout(() => {
+    assert.equal(onData.mock.calls.length, 300);
+    assert.equal(onError.mock.calls.length, 0);
+    assert.equal(onEnd.mock.calls.length, 1);
+    assert(!stream.eventNames().includes('data'));
+    assert(!stream.eventNames().includes('error'));
+    assert(!stream.eventNames().includes('end'));
+    assert(!stream.eventNames().includes('close'));
+  }, 1000);
+});
+
+test('wrapStreamRead 3', () => {
+  const stream = new PassThrough();
+  for (let i = 0; i < 300; i++) {
+    stream.write(Buffer.from(`aaaa:${i}`));
+  }
+  stream.end();
+  stream.pause();
+  const onData = mock.fn(() => {});
+  const onError = mock.fn(() => {});
+  const onEnd = mock.fn(() => {});
+  wrapStreamRead({
+    stream,
+    onData,
+    onError,
+    onEnd,
+  });
+  assert(stream.eventNames().includes('data'));
+  assert(stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('end'));
+  assert(stream.eventNames().includes('close'));
+
+  setTimeout(() => {
+    assert.equal(onData.mock.calls.length, 0);
+    assert.equal(onError.mock.calls.length, 0);
+    assert.equal(onEnd.mock.calls.length, 0);
+    assert(stream.eventNames().includes('data'));
+    assert(stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('end'));
+    assert(stream.eventNames().includes('close'));
+    stream.resume();
+  }, 1000);
+  setTimeout(() => {
+    assert.equal(onData.mock.calls.length, 300);
+    assert.equal(onError.mock.calls.length, 0);
+    assert.equal(onEnd.mock.calls.length, 1);
+    assert(!stream.eventNames().includes('data'));
+    assert(!stream.eventNames().includes('error'));
+    assert(!stream.eventNames().includes('end'));
+    assert(!stream.eventNames().includes('close'));
+  }, 1500);
+});
+
 test('wrapStreamRead close onError', () => {
   const stream = new PassThrough();
   const onData = mock.fn(() => {});
@@ -194,4 +268,63 @@ test('wrapStreamRead pause', () => {
   setTimeout(() => {
     walk();
   }, 100);
+});
+
+test('wrapStreamRead abort', () => {
+  let i = 0;
+  let isPaused = false;
+  const content = 'asdfwefasdfw asdfw';
+  const stream = new PassThrough();
+  const controller = new AbortController();
+  const pathname = path.resolve(process.cwd(), 'test_wrapperStreamRead_222');
+  const ws = fs.createWriteStream(pathname);
+  const handleDrain = mock.fn(() => {
+    assert(stream.isPaused());
+    isPaused = false;
+    stream.resume();
+    if (!controller.signal.aborted) {
+      walk();
+    }
+  });
+  ws.on('drain', handleDrain);
+
+  const onData = mock.fn((chunk) => ws.write(chunk));
+  const onError = mock.fn(() => {});
+  const onEnd = mock.fn(() => {});
+  const onPause = mock.fn(() => {
+    isPaused = true;
+  });
+
+  wrapStreamRead({
+    signal: controller.signal,
+    stream,
+    onData,
+    onError,
+    onEnd,
+    onPause,
+  });
+
+  function walk() {
+    while (!isPaused) {
+      const s = `${new Array(800).fill(content).join('')}:${i}`;
+      stream.write(s);
+      i++;
+    }
+  }
+  setTimeout(() => {
+    walk();
+  }, 100);
+
+  setTimeout(() => {
+    controller.abort();
+    ws.end();
+    setTimeout(() => {
+      assert(stream.destroyed);
+      assert.equal(onError.mock.calls.length, 0);
+      assert.equal(onEnd.mock.calls.length, 0);
+      assert(onData.mock.calls.length > 0);
+      assert(onPause.mock.calls.length > 0);
+      fs.unlinkSync(pathname);
+    }, 100);
+  }, 3000);
 });

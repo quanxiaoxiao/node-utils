@@ -432,7 +432,7 @@ test('wrapStreamWrite stream writable, stream close error', async () => {
   fs.unlinkSync(pathname);
 });
 
-test('wrapStreamWrite stream writable, onPause', { only: true }, async () => {
+test('wrapStreamWrite stream writable, onPause', async () => {
   let isPaused = false;
   let isClose = false;
   let i = 0;
