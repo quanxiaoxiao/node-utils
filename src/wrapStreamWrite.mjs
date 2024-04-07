@@ -73,34 +73,31 @@ export default ({
   }
 
   function handleDrain() {
-    assert(state.isActive);
-    if (onDrain) {
+    if (state.isActive && onDrain) {
       onDrain();
     }
   }
 
   function handleEnd() {
-    assert(state.isActive);
     state.isEventEndBind = false;
-    state.isActive = false;
     unbindEventClose();
     unbindEventError();
     unbindEventAbort();
-    if (onEnd) {
+    if (state.isActive && onEnd) {
       onEnd();
     }
+    state.isActive = false;
   }
 
   function handleClose() {
-    assert(state.isActive);
-    state.isActive = false;
     state.isEventCloseBind = false;
     clearEvents();
     unbindEventAbort();
     unbindEventError();
-    if (onError) {
+    if (state.isActive && onError) {
       onError(new Error('close error'));
     }
+    state.isActive = false;
   }
 
   function handleError(error) {
@@ -118,26 +115,21 @@ export default ({
     } else {
       console.error(error);
     }
-    if (state.isActive) {
-      state.isActive = false;
-    }
+    state.isActive = false;
   }
 
   function handleFinish() {
-    assert(state.isActive);
     state.isEventFinishBind = false;
-    state.isActive = false;
     unbindEventClose();
     unbindEventError();
     unbindEventAbort();
-    if (onEnd) {
+    if (state.isActive && onEnd) {
       onEnd();
     }
+    state.isActive = false;
   }
 
   function handleAbortOnSignal() {
-    assert(state.isActive);
-    state.isActive = false;
     state.isEventAbortBind = false;
     unbindEventClose();
     clearEvents();
@@ -145,6 +137,7 @@ export default ({
     if (!stream.destroyed) {
       stream.destroy();
     }
+    state.isActive = false;
   }
 
   if (signal) {

@@ -479,3 +479,46 @@ test('wrapStreamWrite stream writable, onPause', async () => {
   assert(new RegExp(`:${count - 1}$`).test(buf.toString()));
   fs.unlinkSync(pathname);
 });
+
+test('wrapStreamWrite stream writable, abort', async () => {
+  let i = 0;
+  let isPaused = false;
+  const controller = new AbortController();
+  const content = 'adsfasdfw';
+  const pathname = path.resolve(process.cwd(), `test_${Date.now()}_444`);
+  const ws = fs.createWriteStream(pathname);
+  const onEnd = mock.fn(() => {});
+  const onError = mock.fn(() => {});
+  const onPause = mock.fn(() => {
+    isPaused = true;
+    if (i >= 3000 && !controller.signal.aborted) {
+      controller.abort();
+      setTimeout(() => {
+        fs.unlinkSync(pathname);
+        assert(ws.destroyed);
+      }, 100);
+    }
+  });
+  const onDrain = mock.fn(() => {
+    isPaused = false;
+    walk();
+  });
+  const write = wrapStreamWrite({
+    signal: controller.signal,
+    stream: ws,
+    onEnd,
+    onError,
+    onPause,
+    onDrain,
+  });
+  function walk() {
+    while (!isPaused) {
+      const s = `${new Array(800).fill(content).join('')}:${i}`;
+      write(s);
+      i++;
+    }
+  }
+  setTimeout(() => {
+    walk();
+  }, 100);
+});

@@ -30,12 +30,13 @@ export default ({
   stream.on('data', handleData);
 
   function handleData(chunk) {
-    assert(state.isActive);
-    const ret = onData(chunk);
-    if (ret === false && !stream.isPaused()) {
-      stream.pause();
-      if (onPause) {
-        onPause();
+    if (state.isActive) {
+      const ret = onData(chunk);
+      if (ret === false && !stream.isPaused()) {
+        stream.pause();
+        if (onPause) {
+          onPause();
+        }
       }
     }
   }
@@ -74,25 +75,25 @@ export default ({
   }
 
   function handleEnd() {
-    assert(state.isActive);
     state.isEventEndBind = false;
-    state.isActive = false;
     clearEvents();
     unbindEventError();
     unbindEventAbort();
-    onEnd();
+    if (state.isActive) {
+      onEnd();
+    }
+    state.isActive = false;
   }
 
   function handleClose() {
-    assert(state.isActive);
-    state.isActive = false;
     state.isEventCloseBind = false;
     clearEvents();
     unbindEventAbort();
     unbindEventError();
-    if (onError) {
+    if (state.isActive && onError) {
       onError(new Error('close error'));
     }
+    state.isActive = false;
   }
 
   function handleError(error) {
@@ -109,20 +110,17 @@ export default ({
     } else {
       console.error(error);
     }
-    if (state.isActive) {
-      state.isActive = false;
-    }
+    state.isActive = false;
   }
 
   function handleAbortOnSignal() {
-    assert(state.isActive);
-    state.isActive = false;
     state.isEventAbortBind = false;
     clearEvents();
     unbindEventError();
     if (!stream.destroyed) {
       stream.destroy();
     }
+    state.isActive = false;
   }
 
   if (signal) {
