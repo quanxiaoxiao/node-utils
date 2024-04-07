@@ -5,15 +5,15 @@ import process from 'node:process';
 import fs from 'node:fs';
 import { test, mock } from 'node:test';
 import { PassThrough } from 'node:stream';
-import wrapperStreamRead from './wrapperStreamRead.mjs';
+import wrapStreamRead from './wrapStreamRead.mjs';
 
-test('wrapperStreamRead', () => {
+test('wrapStreamRead', () => {
   const stream = new PassThrough();
   const controller = new AbortController();
   const onData = mock.fn(() => {});
   const onError = mock.fn(() => {});
   const onEnd = mock.fn(() => {});
-  wrapperStreamRead({
+  wrapStreamRead({
     signal: controller.signal,
     stream,
     onData,
@@ -43,12 +43,12 @@ test('wrapperStreamRead', () => {
   }, 1000);
 });
 
-test('wrapperStreamRead close onError', () => {
+test('wrapStreamRead close onError', () => {
   const stream = new PassThrough();
   const onData = mock.fn(() => {});
   const onError = mock.fn(() => {});
   const onEnd = mock.fn(() => {});
-  wrapperStreamRead({
+  wrapStreamRead({
     stream,
     onData,
     onError,
@@ -73,14 +73,14 @@ test('wrapperStreamRead close onError', () => {
   }, 1000);
 });
 
-test('wrapperStreamRead emit error', () => {
+test('wrapStreamRead emit error', () => {
   const stream = new PassThrough();
   const onData = mock.fn(() => {});
   const onError = mock.fn((error) => {
     assert.equal(error.message, 'xxx');
   });
   const onEnd = mock.fn(() => {});
-  wrapperStreamRead({
+  wrapStreamRead({
     stream,
     onData,
     onError,
@@ -106,7 +106,7 @@ test('wrapperStreamRead emit error', () => {
   }, 1000);
 });
 
-test('wrapperStreamRead abort', () => {
+test('wrapStreamRead abort', () => {
   const stream = new PassThrough();
   const controller = new AbortController();
   const onData = mock.fn(() => {});
@@ -114,7 +114,7 @@ test('wrapperStreamRead abort', () => {
     assert.equal(error.message, 'xxx');
   });
   const onEnd = mock.fn(() => {});
-  wrapperStreamRead({
+  wrapStreamRead({
     signal: controller.signal,
     stream,
     onData,
@@ -141,7 +141,7 @@ test('wrapperStreamRead abort', () => {
   }, 1000);
 });
 
-test('wrapperStreamRead pause', () => {
+test('wrapStreamRead pause', () => {
   const isPaused = false;
   const count = 3000;
   let i = 0;
@@ -171,7 +171,7 @@ test('wrapperStreamRead pause', () => {
     assert(new RegExp(`:${count - 1}$`).test(buf.toString()));
   });
 
-  wrapperStreamRead({
+  wrapStreamRead({
     stream,
     onData,
     onError,
