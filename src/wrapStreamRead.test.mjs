@@ -328,3 +328,41 @@ test('wrapStreamRead abort', () => {
     }, 100);
   }, 3000);
 });
+
+test('wrapStreamRead onData trigger error', () => {
+  let i = 0;
+  const stream = new PassThrough();
+  const onData = mock.fn(() => {
+    if (i === 2) {
+      throw new Error('xxx');
+    }
+    i++;
+  });
+  const onError = mock.fn((error) => {
+    assert.equal(error.message, 'xxx');
+  });
+  const onEnd = mock.fn(() => {});
+  wrapStreamRead({
+    stream,
+    onData,
+    onError,
+    onEnd,
+  });
+
+  setTimeout(() => {
+    stream.write('111');
+  }, 20);
+  setTimeout(() => {
+    stream.write('222');
+  }, 30);
+  setTimeout(() => {
+    stream.write('333');
+  }, 40);
+
+  setTimeout(() => {
+    assert.equal(onError.mock.calls.length, 1);
+    assert.equal(onData.mock.calls.length, 3);
+    assert.equal(onEnd.mock.calls.length, 0);
+    assert(stream.destroyed);
+  }, 100);
+});

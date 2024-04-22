@@ -29,14 +29,35 @@ export default ({
   stream.once('end', handleEnd);
   stream.on('data', handleData);
 
+  function emitError(error) {
+    clearEvents();
+    unbindEventError();
+    unbindEventAbort();
+    if (!stream.destroyed) {
+      stream.destroy();
+    }
+    if (state.isActive) {
+      state.isActive = false;
+      if (onError) {
+        onError(error);
+      } else {
+        console.error(error);
+      }
+    }
+  }
+
   function handleData(chunk) {
     if (state.isActive) {
-      const ret = onData(chunk);
-      if (ret === false && !stream.isPaused()) {
-        stream.pause();
-        if (onPause) {
-          onPause();
+      try {
+        const ret = onData(chunk);
+        if (ret === false && !stream.isPaused()) {
+          stream.pause();
+          if (onPause) {
+            onPause();
+          }
         }
+      } catch (error) {
+        emitError(error);
       }
     }
   }
@@ -87,30 +108,12 @@ export default ({
 
   function handleClose() {
     state.isEventCloseBind = false;
-    clearEvents();
-    unbindEventAbort();
-    unbindEventError();
-    if (state.isActive && onError) {
-      onError(new Error('close error'));
-    }
-    state.isActive = false;
+    emitError(new Error('close error'));
   }
 
   function handleError(error) {
     state.isEventErrorBind = false;
-    clearEvents();
-    unbindEventAbort();
-    if (!stream.destroyed) {
-      stream.destroy();
-    }
-    if (onError) {
-      if (state.isActive) {
-        onError(error);
-      }
-    } else {
-      console.error(error);
-    }
-    state.isActive = false;
+    emitError(error);
   }
 
   function handleAbortOnSignal() {
