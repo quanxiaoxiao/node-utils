@@ -366,3 +366,21 @@ test('wrapStreamRead onData trigger error', () => {
     assert(stream.destroyed);
   }, 100);
 });
+
+test('wrapStreamRead 1', () => {
+  const pathname = path.resolve(process.cwd(), 'package-lock.json');
+  const ws = fs.createReadStream(pathname);
+  const stream = new PassThrough();
+  const bufList = [];
+  ws.pause();
+  wrapStreamRead({
+    stream,
+    onData: (chunk) => {
+      bufList.push(chunk);
+    },
+    onEnd: () => {
+      assert.equal(Buffer.concat(bufList), fs.readFileSync(pathname).toString());
+    },
+  });
+  ws.pipe(stream);
+});
