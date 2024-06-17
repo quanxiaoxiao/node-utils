@@ -1,4 +1,5 @@
 /* eslint no-use-before-define: 0 */
+import { Buffer } from 'node:buffer';
 import assert from 'node:assert';
 import { Readable } from 'node:stream';
 

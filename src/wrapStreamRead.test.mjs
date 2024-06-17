@@ -2,6 +2,7 @@
 import assert from 'node:assert';
 import path from 'node:path';
 import process from 'node:process';
+import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import { test, mock } from 'node:test';
 import { PassThrough } from 'node:stream';
