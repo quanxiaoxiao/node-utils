@@ -370,18 +370,50 @@ test('wrapStreamRead onData trigger error', () => {
 
 test('wrapStreamRead 1', () => {
   const pathname = path.resolve(process.cwd(), 'package-lock.json');
+  const onData = mock.fn(() => {});
   const ws = fs.createReadStream(pathname);
+  const onError = mock.fn(() => {});
+  const onEnd = mock.fn(() => {});
   const stream = new PassThrough();
-  const bufList = [];
   ws.pause();
   wrapStreamRead({
     stream,
-    onData: (chunk) => {
-      bufList.push(chunk);
-    },
-    onEnd: () => {
-      assert.equal(Buffer.concat(bufList), fs.readFileSync(pathname).toString());
-    },
+    onData,
+    onEnd,
+    onError,
   });
   ws.pipe(stream);
+  setTimeout(() => {
+    assert.equal(onError.mock.calls.length, 0);
+    assert(onData.mock.calls.length > 0);
+    assert.equal(onEnd.mock.calls.length, 1);
+    assert.equal(
+      Buffer.concat(onData.mock.calls.map((d) => d.arguments[0])).toString(),
+      fs.readFileSync(pathname).toString(),
+    );
+    onData
+  }, 500);
+});
+
+test('wrapStreamRead onEnd trigger error', () => {
+  const stream = new PassThrough();
+  const onData = mock.fn(() => {});
+  const onError = mock.fn(() => {});
+  const onEnd = mock.fn(() => {
+    throw new Error('xxx');
+  });
+  wrapStreamRead({
+    stream,
+    onData,
+    onEnd,
+    onError,
+  });
+  stream.write('aaa');
+  stream.write('bbb');
+  stream.end();
+  setTimeout(() => {
+    assert.equal(onData.mock.calls.length, 2);
+    assert.equal(onError.mock.calls.length, 1);
+    assert.equal(onError.mock.calls[0].arguments[0].message, 'xxx');
+  }, 500);
 });

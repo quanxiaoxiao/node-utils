@@ -101,9 +101,13 @@ export default ({
     unbindEventError();
     unbindEventAbort();
     if (state.isActive) {
-      onEnd();
+      try {
+        onEnd();
+        state.isActive = false;
+      } catch (error) {
+        onError(error);
+      }
     }
-    state.isActive = false;
   }
 
   function handleClose() {
