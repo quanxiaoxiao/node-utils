@@ -1,7 +1,7 @@
 /* eslint no-use-before-define: 0 */
+import { Readable, Writable } from 'node:stream';
 import { Buffer } from 'node:buffer';
 import assert from 'node:assert';
-import { Readable } from 'node:stream';
 
 export default ({
   stream,
@@ -11,6 +11,7 @@ export default ({
   onError,
   onEnd,
 }) => {
+  assert(stream instanceof Writable);
   assert(stream.writable);
   if (stream instanceof Readable) {
     assert(stream.readable);

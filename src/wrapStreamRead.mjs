@@ -1,4 +1,5 @@
 /* eslint no-use-before-define: 0 */
+import { Readable } from 'node:stream';
 import assert from 'node:assert';
 
 export default ({
@@ -9,9 +10,9 @@ export default ({
   onEnd,
   onPause,
 }) => {
+  assert(stream instanceof Readable);
   assert(stream.readable);
   assert(typeof onData === 'function');
-  assert(typeof onEnd === 'function');
   if (signal) {
     assert(!signal.aborted);
   }
@@ -102,10 +103,16 @@ export default ({
     unbindEventAbort();
     if (state.isActive) {
       try {
-        onEnd();
+        if (onEnd) {
+          onEnd();
+        }
         state.isActive = false;
       } catch (error) {
-        onError(error);
+        if (onError) {
+          onError(error);
+        } else {
+          console.error(error);
+        }
       }
     }
   }
