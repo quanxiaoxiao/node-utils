@@ -544,3 +544,38 @@ test('wrapStreamWrite with empty', () => {
     assert.equal(onEnd.mock.calls.length, 1);
   }, 100);
 });
+
+test('wrapStreamWrite write with callback', async () => {
+  const stream = new PassThrough();
+  const handleData = mock.fn(() => {});
+  const onEnd = mock.fn((size) => {
+    assert.equal(size, 6);
+  });
+  const readEnd = mock.fn((size) => {
+    assert.equal(size, 6);
+  });
+  stream.on('data', handleData);
+  const onError = mock.fn(() => {});
+  const write = wrapStreamWrite({
+    stream,
+    onEnd,
+    onError,
+  });
+  assert.equal(handleData.mock.calls.length, 0);
+  write(Buffer.from('aa'));
+  assert.equal(onEnd.mock.calls.length, 0);
+  assert.equal(handleData.mock.calls.length, 1);
+  write(Buffer.from('bbce'));
+  assert.equal(onEnd.mock.calls.length, 0);
+  assert.equal(handleData.mock.calls.length, 2);
+  write(readEnd);
+  await waitFor(100);
+  assert.equal(onEnd.mock.calls.length, 1);
+  assert.equal(readEnd.mock.calls.length, 1);
+  assert.throws(() => {
+    write(() => {});
+  });
+  await waitFor(100);
+  assert.equal(onEnd.mock.calls.length, 1);
+  assert.equal(readEnd.mock.calls.length, 1);
+});

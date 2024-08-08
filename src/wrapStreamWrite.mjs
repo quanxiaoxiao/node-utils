@@ -86,8 +86,13 @@ export default ({
     unbindEventClose();
     unbindEventError();
     unbindEventAbort();
-    if (state.isActive && onEnd) {
-      onEnd(state.bytes);
+    if (state.isActive) {
+      if (onEnd) {
+        onEnd(state.bytes);
+      }
+      if (state._onEnd) {
+        state._onEnd(state.bytes);
+      }
     }
     state.isActive = false;
   }
@@ -126,8 +131,13 @@ export default ({
     unbindEventClose();
     unbindEventError();
     unbindEventAbort();
-    if (state.isActive && onEnd) {
-      onEnd(state.bytes);
+    if (state.isActive) {
+      if (onEnd) {
+        onEnd(state.bytes);
+      }
+      if (state._onEnd) {
+        state._onEnd(state.bytes);
+      }
     }
     state.isActive = false;
   }
@@ -152,14 +162,20 @@ export default ({
     assert(state.isActive);
     assert(!stream.destroyed);
     assert(stream.writable && !stream.writableEnded);
-    if (chunk == null) {
+    if (chunk == null || typeof chunk === 'function') {
       clearEvents();
+      if (typeof chunk === 'function') {
+        state._onEnd = chunk;
+      }
       if (state.bytes === 0) {
         unbindEventClose();
         unbindEventError();
         state.isActive = false;
         if (onEnd) {
           onEnd(0);
+        }
+        if (state._onEnd) {
+          state._onEnd(0);
         }
         stream.destroy();
         return null;
