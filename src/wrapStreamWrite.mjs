@@ -10,6 +10,7 @@ export default ({
   onDrain,
   onError,
   onEnd,
+  onAbort,
 }) => {
   assert(stream instanceof Writable);
   assert(stream.writable);
@@ -151,6 +152,9 @@ export default ({
       stream.destroy();
     }
     state.isActive = false;
+    if (onAbort) {
+      onAbort();
+    }
   }
 
   if (signal) {

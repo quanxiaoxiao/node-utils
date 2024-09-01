@@ -9,6 +9,7 @@ export default ({
   onData,
   onEnd,
   onPause,
+  onAbort,
 }) => {
   assert(stream instanceof Readable);
   assert(stream.readable);
@@ -135,6 +136,9 @@ export default ({
       stream.destroy();
     }
     state.isActive = false;
+    if (onAbort) {
+      onAbort();
+    }
   }
 
   if (signal) {
