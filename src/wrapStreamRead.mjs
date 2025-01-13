@@ -19,21 +19,19 @@ export default ({
   }
   const state = {
     isActive: true,
-    isEventErrorBind: true,
     isEventDataBind: true,
     isEventEndBind: true,
     isEventCloseBind: true,
     isEventAbortBind: !!signal,
   };
 
-  stream.once('error', handleError);
+  stream.on('error', handleError);
   stream.once('close', handleClose);
   stream.once('end', handleEnd);
   stream.on('data', handleData);
 
   function emitError(error) {
     clearEvents();
-    unbindEventError();
     unbindEventAbort();
     if (!stream.destroyed) {
       stream.destroy();
@@ -64,17 +62,6 @@ export default ({
     }
   }
 
-  function unbindEventError() {
-    if (state.isEventErrorBind) {
-      setTimeout(() => {
-        if (state.isEventErrorBind) {
-          state.isEventErrorBind = false;
-          stream.off('error', handleError);
-        }
-      }, 100);
-    }
-  }
-
   function unbindEventAbort() {
     if (state.isEventAbortBind) {
       state.isEventAbortBind = false;
@@ -100,7 +87,6 @@ export default ({
   function handleEnd() {
     state.isEventEndBind = false;
     clearEvents();
-    unbindEventError();
     unbindEventAbort();
     if (state.isActive) {
       try {
@@ -124,14 +110,12 @@ export default ({
   }
 
   function handleError(error) {
-    state.isEventErrorBind = false;
     emitError(error);
   }
 
   function handleAbortOnSignal() {
     state.isEventAbortBind = false;
     clearEvents();
-    unbindEventError();
     if (!stream.destroyed) {
       stream.destroy();
     }

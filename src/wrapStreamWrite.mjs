@@ -23,7 +23,6 @@ export default ({
 
   const state = {
     isActive: true,
-    isEventErrorBind: true,
     isEventEndBind: false,
     isEventDrainBind: true,
     isEventCloseBind: true,
@@ -32,20 +31,9 @@ export default ({
     bytes: 0,
   };
 
-  stream.once('error', handleError);
+  stream.on('error', handleError);
   stream.once('close', handleClose);
   stream.on('drain', handleDrain);
-
-  function unbindEventError() {
-    if (state.isEventErrorBind) {
-      setTimeout(() => {
-        if (state.isEventErrorBind) {
-          state.isEventErrorBind = false;
-          stream.off('error', handleError);
-        }
-      }, 100);
-    }
-  }
 
   function unbindEventClose() {
     if (state.isEventCloseBind) {
@@ -85,7 +73,6 @@ export default ({
   function handleEnd() {
     state.isEventEndBind = false;
     unbindEventClose();
-    unbindEventError();
     unbindEventAbort();
     if (state.isActive) {
       if (onEnd) {
@@ -102,7 +89,6 @@ export default ({
     state.isEventCloseBind = false;
     clearEvents();
     unbindEventAbort();
-    unbindEventError();
     if (state.isActive && onError) {
       onError(new Error('close error'));
     }
@@ -110,7 +96,6 @@ export default ({
   }
 
   function handleError(error) {
-    state.isEventErrorBind = false;
     unbindEventClose();
     clearEvents();
     unbindEventAbort();
@@ -130,7 +115,6 @@ export default ({
   function handleFinish() {
     state.isEventFinishBind = false;
     unbindEventClose();
-    unbindEventError();
     unbindEventAbort();
     if (state.isActive) {
       if (onEnd) {
@@ -147,7 +131,6 @@ export default ({
     state.isEventAbortBind = false;
     unbindEventClose();
     clearEvents();
-    unbindEventError();
     if (!stream.destroyed) {
       stream.destroy();
     }
@@ -173,7 +156,6 @@ export default ({
       }
       if (state.bytes === 0) {
         unbindEventClose();
-        unbindEventError();
         state.isActive = false;
         if (onEnd) {
           onEnd(0);

@@ -45,7 +45,7 @@ test('wrapStreamWrite', async () => {
   assert.equal(handleData.mock.calls[1].arguments.toString(), 'bbb');
   controller.abort();
   await waitFor(100);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));
@@ -90,7 +90,7 @@ test('wrapStreamWrite signal abort', async () => {
     (error) => error instanceof assert.AssertionError,
   );
   await waitFor(200);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert.equal(onError.mock.calls.length, 0);
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
@@ -128,7 +128,7 @@ test('wrapStreamWrite stream destroy', async () => {
     (error) => error instanceof assert.AssertionError,
   );
   await waitFor(200);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert.equal(onError.mock.calls.length, 1);
   assert.equal(onEnd.mock.calls.length, 0);
   assert.equal(handleData.mock.calls.length, 1);
@@ -229,8 +229,10 @@ test('wrapStreamWrite stream trigger error', async () => {
   write(Buffer.from('ccc'));
   stream.emit('error', new Error('aaa'));
   await waitFor(100);
+  stream.emit('error', new Error('sss'));
+  await waitFor(100);
   assert(stream.destroyed);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));
@@ -264,7 +266,7 @@ test('wrapStreamWrite stream trigger error 2', async () => {
   stream.emit('error', new Error('aaa'));
   await waitFor(100);
   assert(stream.destroyed);
-  assert(!stream.eventNames().includes('error'));
+  assert(stream.eventNames().includes('error'));
   assert(!stream.eventNames().includes('end'));
   assert(!stream.eventNames().includes('drain'));
   assert(!stream.eventNames().includes('close'));

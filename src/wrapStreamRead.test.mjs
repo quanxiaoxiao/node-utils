@@ -39,7 +39,7 @@ test('wrapStreamRead', () => {
     assert.equal(onError.mock.calls.length, 0);
     assert.equal(onEnd.mock.calls.length, 1);
     assert(!stream.eventNames().includes('data'));
-    assert(!stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('error'));
     assert(!stream.eventNames().includes('end'));
     assert(!stream.eventNames().includes('close'));
   }, 1000);
@@ -71,7 +71,7 @@ test('wrapStreamRead 2', () => {
     assert.equal(onError.mock.calls.length, 0);
     assert.equal(onEnd.mock.calls.length, 1);
     assert(!stream.eventNames().includes('data'));
-    assert(!stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('error'));
     assert(!stream.eventNames().includes('end'));
     assert(!stream.eventNames().includes('close'));
   }, 1000);
@@ -113,7 +113,7 @@ test('wrapStreamRead 3', () => {
     assert.equal(onError.mock.calls.length, 0);
     assert.equal(onEnd.mock.calls.length, 1);
     assert(!stream.eventNames().includes('data'));
-    assert(!stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('error'));
     assert(!stream.eventNames().includes('end'));
     assert(!stream.eventNames().includes('close'));
   }, 1500);
@@ -143,7 +143,7 @@ test('wrapStreamRead close onError', () => {
     assert.equal(onError.mock.calls.length, 1);
     assert.equal(onEnd.mock.calls.length, 0);
     assert(!stream.eventNames().includes('data'));
-    assert(!stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('error'));
     assert(!stream.eventNames().includes('end'));
     assert(!stream.eventNames().includes('close'));
   }, 1000);
@@ -171,12 +171,15 @@ test('wrapStreamRead emit error', () => {
     stream.emit('error', new Error('xxx'));
   }, 30);
   setTimeout(() => {
+    stream.emit('error', new Error('eeee'));
+  }, 80);
+  setTimeout(() => {
     assert(stream.destroyed);
     assert.equal(onData.mock.calls.length, 2);
     assert.equal(onError.mock.calls.length, 1);
     assert.equal(onEnd.mock.calls.length, 0);
     assert(!stream.eventNames().includes('data'));
-    assert(!stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('error'));
     assert(!stream.eventNames().includes('end'));
     assert(!stream.eventNames().includes('close'));
   }, 1000);
@@ -211,7 +214,7 @@ test('wrapStreamRead abort', () => {
     assert.equal(onError.mock.calls.length, 0);
     assert.equal(onEnd.mock.calls.length, 0);
     assert(!stream.eventNames().includes('data'));
-    assert(!stream.eventNames().includes('error'));
+    assert(stream.eventNames().includes('error'));
     assert(!stream.eventNames().includes('end'));
     assert(!stream.eventNames().includes('close'));
   }, 1000);
