@@ -1,11 +1,12 @@
 /* eslint no-use-before-define: 0 */
 import assert from 'node:assert';
-import process from 'node:process';
+import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
 import path from 'node:path';
-import { Buffer } from 'node:buffer';
-import { test, mock } from 'node:test';
+import process from 'node:process';
 import { PassThrough } from 'node:stream';
+import { mock,test } from 'node:test';
+
 import wrapStreamWrite from './wrapStreamWrite.mjs';
 
 const waitFor = async (t = 100) => {

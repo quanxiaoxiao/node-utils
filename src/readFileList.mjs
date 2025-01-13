@@ -1,5 +1,5 @@
-import { join } from 'node:path';
 import fs from 'node:fs';
+import { join } from 'node:path';
 
 const readFileList = (pathname, maxDepth) => {
   const state = fs.statSync(pathname);

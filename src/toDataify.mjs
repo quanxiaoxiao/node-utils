@@ -1,5 +1,5 @@
-import crypto from 'node:crypto';
 import { Buffer } from 'node:buffer';
+import crypto from 'node:crypto';
 
 const format = (obj) => {
   if (obj == null) {

@@ -1,7 +1,7 @@
 /* eslint no-use-before-define: 0 */
-import { Readable, Writable } from 'node:stream';
-import { Buffer } from 'node:buffer';
 import assert from 'node:assert';
+import { Buffer } from 'node:buffer';
+import { Readable, Writable } from 'node:stream';
 
 export default ({
   stream,

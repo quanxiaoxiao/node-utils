@@ -1,11 +1,12 @@
 /* eslint no-use-before-define: 0 */
 import assert from 'node:assert';
-import path from 'node:path';
-import process from 'node:process';
 import { Buffer } from 'node:buffer';
 import fs from 'node:fs';
-import { test, mock } from 'node:test';
+import path from 'node:path';
+import process from 'node:process';
 import { PassThrough } from 'node:stream';
+import { mock,test } from 'node:test';
+
 import wrapStreamRead from './wrapStreamRead.mjs';
 
 test('wrapStreamRead', () => {
@@ -391,7 +392,7 @@ test('wrapStreamRead 1', () => {
       Buffer.concat(onData.mock.calls.map((d) => d.arguments[0])).toString(),
       fs.readFileSync(pathname).toString(),
     );
-    onData
+    onData;
   }, 500);
 });
 

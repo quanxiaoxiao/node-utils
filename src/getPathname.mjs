@@ -1,6 +1,6 @@
-import process from 'node:process';
-import path from 'node:path';
 import { homedir } from 'node:os';
+import path from 'node:path';
+import process from 'node:process';
 
 const trim = (s) => s.replace(/\/$/, '');
 

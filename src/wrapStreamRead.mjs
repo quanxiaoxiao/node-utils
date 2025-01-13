@@ -1,6 +1,6 @@
 /* eslint no-use-before-define: 0 */
-import { Readable } from 'node:stream';
 import assert from 'node:assert';
+import { Readable } from 'node:stream';
 
 export default ({
   stream,
