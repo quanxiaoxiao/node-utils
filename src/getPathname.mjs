@@ -11,14 +11,14 @@ export default (url) => {
     return null;
   }
   const str = url.trim();
-  if (str[0] === '~') {
+  if (str.startsWith('~')) {
     const nameList = generateNameList(trim(str.slice(1)));
     if (nameList.length === 0) {
       return homedir();
     }
     return path.join(homedir(), ...nameList);
   }
-  if (str[0] !== '/') {
+  if (!str.startsWith('/')) {
     const nameList = [];
     if (/^\.\//.test(str)) {
       nameList.push(...generateNameList(trim(str.slice(2))));

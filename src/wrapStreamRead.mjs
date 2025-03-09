@@ -25,10 +25,27 @@ export default ({
     isEventAbortBind: !!signal,
   };
 
-  stream.on('error', handleError);
-  stream.once('close', handleClose);
-  stream.once('end', handleEnd);
-  stream.on('data', handleData);
+  function clearEvents() {
+    if (state.isEventEndBind) {
+      state.isEventEndBind = false;
+      stream.off('end', handleEnd);
+    }
+    if (state.isEventDataBind) {
+      state.isEventDataBind = false;
+      stream.off('data', handleData);
+    }
+    if (state.isEventCloseBind) {
+      state.isEventCloseBind = false;
+      stream.off('close', handleClose);
+    }
+  }
+
+  function unbindEventAbort() {
+    if (state.isEventAbortBind) {
+      state.isEventAbortBind = false;
+      signal.removeEventListener('abort', handleAbortOnSignal);
+    }
+  }
 
   function emitError(error) {
     clearEvents();
@@ -47,59 +64,39 @@ export default ({
   }
 
   function handleData(chunk) {
-    if (state.isActive) {
-      try {
-        const ret = onData(chunk);
-        if (ret === false && !stream.isPaused()) {
-          stream.pause();
-          if (onPause) {
-            onPause();
-          }
+    if (!state.isActive) {
+      return;
+    }
+    try {
+      const ret = onData(chunk);
+      if (ret === false && !stream.isPaused()) {
+        stream.pause();
+        if (onPause) {
+          onPause();
         }
-      } catch (error) {
-        emitError(error);
       }
-    }
-  }
-
-  function unbindEventAbort() {
-    if (state.isEventAbortBind) {
-      state.isEventAbortBind = false;
-      signal.removeEventListener('abort', handleAbortOnSignal);
-    }
-  }
-
-  function clearEvents() {
-    if (state.isEventEndBind) {
-      state.isEventEndBind = false;
-      stream.off('end', handleEnd);
-    }
-    if (state.isEventDataBind) {
-      state.isEventDataBind = false;
-      stream.off('data', handleData);
-    }
-    if (state.isEventCloseBind) {
-      state.isEventCloseBind = false;
-      stream.off('close', handleClose);
+    } catch (error) {
+      emitError(error);
     }
   }
 
   function handleEnd() {
+    if (!state.isActive) {
+      return;
+    }
     state.isEventEndBind = false;
     clearEvents();
     unbindEventAbort();
-    if (state.isActive) {
-      try {
-        if (onEnd) {
-          onEnd();
-        }
-        state.isActive = false;
-      } catch (error) {
-        if (onError) {
-          onError(error);
-        } else {
-          console.error(error);
-        }
+    try {
+      if (onEnd) {
+        onEnd();
+      }
+      state.isActive = false;
+    } catch (error) {
+      if (onError) {
+        onError(error);
+      } else {
+        console.error(error);
       }
     }
   }
@@ -124,6 +121,11 @@ export default ({
       onAbort();
     }
   }
+
+  stream.on('error', handleError);
+  stream.once('close', handleClose);
+  stream.once('end', handleEnd);
+  stream.on('data', handleData);
 
   if (signal) {
     signal.addEventListener('abort', handleAbortOnSignal, { once: true });

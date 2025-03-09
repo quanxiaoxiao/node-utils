@@ -71,16 +71,17 @@ export default ({
   }
 
   function handleEnd() {
+    if (!state.isActive) {
+      return;
+    }
     state.isEventEndBind = false;
     unbindEventClose();
     unbindEventAbort();
-    if (state.isActive) {
-      if (onEnd) {
-        onEnd(state.bytes);
-      }
-      if (state._onEnd) {
-        state._onEnd(state.bytes);
-      }
+    if (onEnd) {
+      onEnd(state.bytes);
+    }
+    if (state._onEnd) {
+      state._onEnd(state.bytes);
     }
     state.isActive = false;
   }
